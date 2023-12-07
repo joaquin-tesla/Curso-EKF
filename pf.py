@@ -1,6 +1,5 @@
-""" Written by Brian Hou for CSE571: Probabilistic Robotics (Winter 2019)
-"""
-
+from itertools import accumulate
+from re import M
 import numpy as np
 
 from utils import minimized_angle
@@ -12,6 +11,7 @@ class ParticleFilter:
         self.alphas = alphas
         self.beta = beta
 
+        self.soccer = Field(alphas, beta)
         self._init_mean = mean
         self._init_cov = cov
         self.num_particles = num_particles
@@ -32,18 +32,20 @@ class ParticleFilter:
         z: landmark observation
         marker_id: landmark ID
         """
-        
-        
+
         theta_p = np.zeros((self.num_particles, 1))
         for i in range(self.num_particles):
-            self.particles[i , 0 ] = self.particles[i , 0 ] + u[1]*np.cos(self.particles[i, 2 ] +u[0])
-            self.particles[i , 1 ] = self.particles[i , 1 ] + u[1]*np.sin(self.particles[i , 2 ] +u[0])
-            self.particles[i , 2 ] = minimized_angle(self.particles[i , 2 ] + u[0]+u[2])
-            theta_p[i, 0] = Field.observe(Field, self.particles[i, :], marker_id)
-            self.weights[i] = Field.likelihood(Field,minimized_angle(z-theta_p[i]),self.beta)
+            self.particles[i, :] =np.transpose(self.soccer.sample_noisy_action(u, self.alphas))
+            theta_p[i, 0] = self.soccer.observe(self.particles[i,:], marker_id)
+            self.weights[i] = Field.likelihood(Field, minimized_angle(z - theta_p[i]), self.beta)
+        normal = np.sum(self.weights)
+        for k in range(self.num_particles):
+            self.weights[k] = self.weights[k]/normal
+        #print(np.transpose(self.soccer.sample_noisy_action(u, self.alphas)))
         
-        self.particles, self.weights = self.resample( self.particles, self.weights)
-         
+
+        self.particles, self.weights = self.resample(self.particles, self.weights)
+
         mean, cov = self.mean_and_variance(self.particles)
         return mean, cov
 
@@ -54,12 +56,20 @@ class ParticleFilter:
         particles: (n x 3) matrix of poses
         weights: (n,) array of weights
         """
-        total = np.sum(self.weights)
-        for i in range(self.num_particles):
-            self.weights[i] = self.weights[i]/total
-            
-        new_particles, new_weights = particles, weights
-        
+        p = self.num_particles
+        c = weights[0]
+        new_particles = np.zeros((p, 3))  # Fix: Correct the syntax for creating a numpy array
+        n = np.random.uniform(0, 1 / p)
+        new_weights = np.zeros(p)
+        i = 0
+        for j in range(p):
+            U = n + j * 1 / p
+            while (U > c):
+                i = i + 1
+                c = c + weights[i]
+            new_particles[j] = self.particles[i]
+            new_weights[j] = weights[i]
+
         return new_particles, new_weights
 
     def mean_and_variance(self, particles):
