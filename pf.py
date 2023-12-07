@@ -34,16 +34,17 @@ class ParticleFilter:
         """
 
         theta_p = np.zeros((self.num_particles, 1))
+        
         for i in range(self.num_particles):
-            self.particles[i, :] =np.transpose(self.soccer.sample_noisy_action(u, self.alphas))
-            theta_p[i, 0] = self.soccer.observe(self.particles[i,:], marker_id)
-            self.weights[i] = Field.likelihood(Field, minimized_angle(z - theta_p[i]), self.beta)
+            self.particles[i,:] = np.transpose(self.soccer.forward(self.particles[i,:], self.soccer.sample_noisy_action(u,self.alphas)))
+            theta_p[i, 0] = self.soccer.sample_noisy_observation(self.particles[i, :], marker_id, self.beta)
+            self.weights[i] = Field.likelihood(Field, ( theta_p[i] - z), self.beta)
+
         normal = np.sum(self.weights)
         for k in range(self.num_particles):
-            self.weights[k] = self.weights[k]/normal
-        #print(np.transpose(self.soccer.sample_noisy_action(u, self.alphas)))
+           self.weights[k] = self.weights[k]/normal
         
-
+    
         self.particles, self.weights = self.resample(self.particles, self.weights)
 
         mean, cov = self.mean_and_variance(self.particles)
@@ -58,7 +59,7 @@ class ParticleFilter:
         """
         p = self.num_particles
         c = weights[0]
-        new_particles = np.zeros((p, 3))  # Fix: Correct the syntax for creating a numpy array
+        new_particles = np.zeros((p, 3))  
         n = np.random.uniform(0, 1 / p)
         new_weights = np.zeros(p)
         i = 0
