@@ -4,7 +4,8 @@
 import numpy as np
 
 from utils import minimized_angle
-
+from soccer_field import Field
+from utils import minimized_angle
 
 class ParticleFilter:
     def __init__(self, mean, cov, num_particles, alphas, beta):
@@ -31,7 +32,18 @@ class ParticleFilter:
         z: landmark observation
         marker_id: landmark ID
         """
-        # YOUR IMPLEMENTATION HERE
+        
+        
+        theta_p = np.zeros((self.num_particles, 1))
+        for i in range(self.num_particles):
+            self.particles[i , 0 ] = self.particles[i , 0 ] + u[1]*np.cos(self.particles[i, 2 ] +u[0])
+            self.particles[i , 1 ] = self.particles[i , 1 ] + u[1]*np.sin(self.particles[i , 2 ] +u[0])
+            self.particles[i , 2 ] = minimized_angle(self.particles[i , 2 ] + u[0]+u[2])
+            theta_p[i, 0] = Field.observe(Field, self.particles[i, :], marker_id)
+            self.weights[i] = Field.likelihood(Field,minimized_angle(z-theta_p[i]),self.beta)
+        
+        self.particles, self.weights = self.resample( self.particles, self.weights)
+         
         mean, cov = self.mean_and_variance(self.particles)
         return mean, cov
 
@@ -42,8 +54,12 @@ class ParticleFilter:
         particles: (n x 3) matrix of poses
         weights: (n,) array of weights
         """
+        total = np.sum(self.weights)
+        for i in range(self.num_particles):
+            self.weights[i] = self.weights[i]/total
+            
         new_particles, new_weights = particles, weights
-        # YOUR IMPLEMENTATION HERE
+        
         return new_particles, new_weights
 
     def mean_and_variance(self, particles):
@@ -57,7 +73,7 @@ class ParticleFilter:
             np.cos(particles[:, 2]).sum(),
             np.sin(particles[:, 2]).sum()
         )
-
+        
         zero_mean = particles - mean
         for i in range(zero_mean.shape[0]):
             zero_mean[i, 2] = minimized_angle(zero_mean[i, 2])

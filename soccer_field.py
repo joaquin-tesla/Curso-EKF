@@ -87,13 +87,11 @@ class Field:
         prev_x, prev_y, prev_theta = x.ravel()
         x, y = self.MARKER_X_POS[marker_id], self.MARKER_Y_POS[marker_id]
         q = (x - prev_x)**2 + (y - prev_y)**2
-        H = np.zeros((2, 3))
-
-        H[0,0] = -(x-prev_x)/q**0.5
-        H[0,1] = -(y-prev_y)/q**0.5
-        H[1,0] =  (y-prev_y)/(q)
-        H[1,1] = -(x-prev_x)/(q)
-        H[1,2] = -1
+        
+        H = np.zeros((1, 3))
+        H[0,0] =  (y-prev_y)/(q)            
+        H[0,1] = -(x-prev_x)/(q)
+        H[0,2] = -1
 
         return H
 
@@ -220,4 +218,3 @@ class Field:
             action_noisefree,
             obs_noisefree, obs_real
         )
-
