@@ -68,8 +68,8 @@ class ParticleFilter:
             while (U > c):
                 i = i + 1
                 c = c + weights[i]
-            new_particles[j] = self.particles[i]
-            new_weights[j] = weights[i]
+            new_particles[j] = particles[i]
+            new_weights[j] = 1
 
         return new_particles, new_weights
 
